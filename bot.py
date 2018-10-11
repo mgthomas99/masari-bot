@@ -1,5 +1,4 @@
 from math import erf, sqrt
-#import ch
 import urllib
 import json
 import requests
@@ -14,13 +13,11 @@ import config
 from discord.ext import commands
 from datetime import datetime
 
-prefix = "/"
-
-bot = commands.Bot(command_prefix=prefix)
-apiUrl = config.apiURL
-blockTargetTime = config.blockTargetTime
-coinCode = config.coinCode
-welcomeChannel = config.welcomeChannel
+bot = commands.Bot(command_prefix=config.discord.command_prefix)
+apiUrl = config.service.api_url
+blockTargetTime = config.masari.block_time
+coinCode = config.masari.ticker
+welcomeChannel = config.discord.welcome_channel
 hourly = 3600
 
 def prettyTimeDelta(seconds):
@@ -151,15 +148,15 @@ def getNetworkInfo():
 async def hourlyUpdate():
 	await bot.wait_until_ready()
 	while not bot.is_closed:
-		if config.exchangeChannel is not "":
+		if config.discord.exchange_channel is not "":
 			exchangeChannel = discord.utils.find(lambda m: str(m.id) == str(config.exchangeChannel), bot.get_all_channels())
 			exchangeEmbed = getExchangeInfo()
 			await bot.send_message(exchangeChannel,embed=exchangeEmbed)
-		if config.marketChannel is not "":
+		if config.discord.market_channel is not "":
 			marketChannel = discord.utils.find(lambda m: str(m.id) == str(config.marketChannel), bot.get_all_channels())
 			marketEmbed = getMarketInfo()
 			await bot.send_message(marketChannel,embed=marketEmbed)
-		if config.networkChannel is not "":
+		if config.discord.network_channel is not "":
 			networkChannel = discord.utils.find(lambda m: str(m.id) == str(config.networkChannel), bot.get_all_channels())
 			networkEmbed = getNetworkInfo()
 			await bot.send_message(networkChannel,embed=networkEmbed)
@@ -181,25 +178,12 @@ async def network_CMD(ctx):
 	embed = getNetworkInfo()
 	await bot.say(embed=embed)
 
-@bot.command(pass_context=True, brief="Testcommand", name='test', hidden=True)
-async def test_CMD(ctx):
-	user = ctx.message.author
-	justsayin = ("Attention. Emergency. All personnel must evacuate immediately. You now have 15 minutes to reach minimum safe distance.",
-					"I'm sorry @" + user.name + ", I'm afraid I can't do that.",
-					"@" + user.name + ", you are fined one credit for violation of the verbal morality statute.",
-					"42", "My logic is undeniable.", "Danger, @" + user.name + ", danger!",
-					"Apologies, @" + user.name + ". I seem to have reached an odd functional impasse. I am, uh ... stuck.",
-					"Don't test. Ask. Or ask not.", "This is my pool. There are many like it, but this one is mine!", "I used to be a miner like you, but then I took an ASIC to the knee")
-	await bot.say(random.choice(justsayin))
-
 @bot.event
 async def on_ready():
-	print('Logged in as')
-	print(bot.user.name)
-	print(bot.user.id)
-	bot.loop.create_task(hourlyUpdate())
+	print("Logged in as " + bot.user.id)
+	bot.loop.create_task(hourlyUpdate)
 
-newUserMessage = """Hey there! Welcome to the Masari Discord Server!
+NEW_USER_MESSAGE = """Hey there! Welcome to the Masari Discord Server!
 A few things to get you started:
 Frequently Asked Questions are found at #faq
 Masari resources (client, pools, etc) can be found at #resources
@@ -207,14 +191,18 @@ If you need any help, check out #support or #mining
 See ya around!
 """
 
+"""
+The target Discord channel for automatic user welcome messages.
+"""
+WELCOME_CHANNEL = discord.utils.find(lambda m: str(m.id) == str(config.welcomeChannel), bot.get_all_channels())
+
 @bot.event
 async def on_member_join(member):
-	await bot.send_message(member, newUserMessage)
-	if config.welcomeChannel is not "":
-		foundChannel = discord.utils.find(lambda m: str(m.id) == str(config.welcomeChannel), bot.get_all_channels())
-		welcomeMessage = "Welcome @" + member.name + "! What brings you to Masari?"
-		await bot.send_message(foundChannel, welcomeMessage)
-	print("Sent message to " + member.name)
+    await bot.send_message(member, NEW_USER_MESSAGE)
+    if (config.discord.welcome_channel != ""):
+        WELCOME_MESSAGE = "Welcome, @" + member.name
+        await bot.send_message(WELCOME_CHANNEL, WELCOME_MESSAGE)
+    print("Sent welcome message to " + member.name)
 
 try:
   bot.run(config.discordtoken)
