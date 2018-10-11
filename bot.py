@@ -13,12 +13,11 @@ import config
 from discord.ext import commands
 from datetime import datetime
 
-bot = commands.Bot(command_prefix=config.discord.command_prefix)
-apiUrl = config.service.api_url
-blockTargetTime = config.masari.block_time
-coinCode = config.masari.ticker
-welcomeChannel = config.discord.welcome_channel
-hourly = 3600
+bot = commands.Bot(command_prefix=config.discord["command_prefix"])
+apiUrl = config.service["api_url"]
+blockTargetTime = config.masari["block_time"]
+coinCode = config.masari["ticker"]
+hourly = 60 * 60   # 1 hour, in seconds.
 
 def prettyTimeDelta(seconds):
   seconds = int(seconds)
@@ -183,6 +182,11 @@ async def on_ready():
 	print("Logged in as " + bot.user.id)
 	bot.loop.create_task(hourlyUpdate)
 
+"""
+Discord bot authentication token.
+"""
+DISCORD_BOT_TOKEN = config.discord["token"]
+
 NEW_USER_MESSAGE = """Hey there! Welcome to the Masari Discord Server!
 A few things to get you started:
 Frequently Asked Questions are found at #faq
@@ -194,7 +198,9 @@ See ya around!
 """
 The target Discord channel for automatic user welcome messages.
 """
-WELCOME_CHANNEL = discord.utils.find(lambda m: str(m.id) == str(config.welcomeChannel), bot.get_all_channels())
+WELCOME_CHANNEL = discord.utils.find(
+    lambda m: str(m.id) == str(config.discord["welcome_channel"]),
+    bot.get_all_channels())
 
 @bot.event
 async def on_member_join(member):
@@ -205,6 +211,6 @@ async def on_member_join(member):
     print("Sent welcome message to " + member.name)
 
 try:
-  bot.run(config.discordtoken)
+  bot.run(DISCORD_BOT_TOKEN)
 except KeyboardInterrupt:
   print("\nStopped")
